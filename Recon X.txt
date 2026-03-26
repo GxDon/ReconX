@@ -1,0 +1,48 @@
+import requests
+from concurrent.futures import ThreadPoolExecutor
+
+# ===== CONFIGURACION DE SITES =====
+sites = {
+    "GitHub": {"url": "https://api.github.com/users/{}", "type": "api"},
+    "Twitter": {"url": "https://twitter.com/{}", "type": "web"},
+    "Instagram": {"url": "https://www.instagram.com/{}", "type": "web"},
+    "Reddit": {"url": "https://www.reddit.com/user/{}", "type": "web"},
+}
+
+HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+# ===== FUNCION DE CHEQUEO =====
+def check_site(site, info, username):
+    url = info["url"].format(username)
+    try:
+        if info["type"] == "api":
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                return f"[✔] Encontrado en {site}: {url}"
+            elif response.status_code == 404:
+                return f"[✘] No encontrado en {site}"
+            else:
+                return f"[!] Error en {site}: {response.status_code}"
+        else:  # web check
+            response = requests.get(url, headers=HEADERS, timeout=5)
+            if response.status_code == 200:
+                return f"[✔] Encontrado en {site}: {url}"
+            elif response.status_code == 404:
+                return f"[✘] No encontrado en {site}"
+            else:
+                return f"[!] Error en {site}: {response.status_code}"
+    except Exception as e:
+        return f"[!] Error al conectar con {site}: {e}"
+
+# ===== FUNCION PRINCIPAL =====
+def check_username(username):
+    print(f"\n🔍 Buscando usuario: {username}\n")
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(check_site, site, info, username) for site, info in sites.items()]
+        for future in futures:
+            print(future.result())
+
+# ===== EJECUTAR =====
+if __name__ == "__main__":
+    user = input("Ingresa un nombre de usuario: ")
+    check_username(user)
